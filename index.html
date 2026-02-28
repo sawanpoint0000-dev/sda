@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Temp OTP Mail – 1 Min Only</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --card: #11151f;
+      --text: #e0e7ff;
+      --accent: #60a5fa;
+      --green: #22c55e;
+      --red: #ef4444;
+      --gray: #94a3b8;
+      --border: #1e293b;
+      --shadow: 0 10px 25px rgba(0,0,0,0.6);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--bg), #0f1622);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--accent);
+      font-size: clamp(1.7rem, 5.5vw, 2.2rem);
+      margin-bottom: 24px;
+    }
+
+    button {
+      background: linear-gradient(90deg, var(--green), #16a34a);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: clamp(1rem, 4vw, 1.1rem);
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin: 12px 0;
+      transition: all 0.2s ease;
+    }
+
+    button:hover:not(:disabled) { transform: translateY(-2px); }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: linear-gradient(90deg, #4b5563, #6b7280);
+    }
+
+    .current-email {
+      background: #0c111b;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+    }
+
+    .email-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #161c28;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      flex-wrap: nowrap;               /* horizontal line fix */
+      overflow: hidden;
+    }
+
+    #currentEmailText {
+      flex: 1;
+      font-size: clamp(1rem, 4vw, 1.1rem);
+      word-break: break-all;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .copy-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover { background: #3b82f6; }
+
+    .timer {
+      text-align: center;
+      font-size: clamp(1.6rem, 7vw, 2.2rem);
+      font-weight: 700;
+      margin: 20px 0;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+
+    .otp-box {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: clamp(1.8rem, 8vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: 6px;
+      border: 2px dashed var(--accent);
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .otp-box.has-otp {
+      border: 2px solid var(--green);
+      background: rgba(34,197,94,0.1);
+      color: #86efac;
+    }
+
+    #status {
+      text-align: center;
+      margin: 16px 0;
+      font-size: clamp(0.95rem, 3.5vw, 1.05rem);
+    }
+
+    .history-title {
+      margin: 32px 0 16px;
+      font-size: 1.2rem;
+      color: var(--gray);
+      text-align: center;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 8px;
+      background: #0c111b;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .history-item {
+      background: #161c28;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid var(--gray);
+    }
+
+    .history-item span {
+      word-break: break-all;
+    }
+
+    .loading  { color: var(--gray); }
+    .success  { color: var(--green); }
+    .error    { color: var(--red); }
+
+    .note {
+      text-align: center;
+      color: var(--gray);
+      font-size: 0.9rem;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 480px) {
+      .email-row {
+        padding: 12px 14px;
+      }
+      .copy-btn {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Temp OTP Mail (1 Min)</h1>
+
+  <button id="generateBtn">Generate New Email</button>
+
+  <div class="current-email" id="currentBox" style="display:none;">
+    <div class="email-row">
+      <span id="currentEmailText"></span>
+      <button class="copy-btn" onclick="copyCurrentEmail()">Copy</button>
+    </div>
+    <div class="timer" id="timer">01:00</div>
+    <div class="otp-box" id="otpBox">Waiting for OTP...</div>
+  </div>
+
+  <div id="status" class="loading">Ready to generate</div>
+
+  <div class="history-title">Previous Generated Emails</div>
+  <div class="history-list" id="historyList"></div>
+
+  <div class="note">
+    Email auto-deletes after 1 minute<br>Generate button locked during timer
+  </div>
+</div>
+
+<script>
+  // Firebase Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFG6e6pFT265Hf7s_3s-hEUD8sN0IDoY0",
+    authDomain: "real-ede33.firebaseapp.com",
+    databaseURL: "https://real-ede33-default-rtdb.firebaseio.com",
+    projectId: "real-ede33",
+    storageBucket: "real-ede33.firebasestorage.app",
+    messagingSenderId: "683680941443",
+    appId: "1:683680941443:web:73bc1c5fcf705330ac22b6",
+    measurementId: "G-G37VVQJSG3"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const FIXED_PASS = "India@123";
+
+  const firstNames = ["Rahul", "Aman", "Vikash", "Rohan", "Sachin", "Arjun", "Karan", "Nikhil", "Yash", "Aditya", "Sawan", "Ravi", "Deepak", "Ankit", "Prakash"];
+  const surnames   = ["Kumar", "Singh", "Sharma", "Yadav", "Gupta", "Verma", "Mishra", "Patel", "Jha", "Thakur", "Sinha", "Roy", "Das", "Mahto", "Rai"];
+
+  let token = null;
+  let currentEmail = "";
+  let countdownInterval = null;
+  let remainingSeconds = 60;
+
+  const generateBtn = document.getElementById("generateBtn");
+  const currentBox  = document.getElementById("currentBox");
+  const currentEmailText = document.getElementById("currentEmailText");
+  const timerEl     = document.getElementById("timer");
+  const otpBox      = document.getElementById("otpBox");
+  const statusEl    = document.getElementById("status");
+  const historyList = document.getElementById("historyList");
+
+  function setStatus(msg, type = "loading") {
+    statusEl.textContent = msg;
+    statusEl.className = type;
+  }
+
+  function copyCurrentEmail() {
+    navigator.clipboard.writeText(currentEmail).then(() => {
+      generateBtn.textContent = "Copied ✓";
+      setTimeout(() => { generateBtn.textContent = "Generate New Email"; }, 1500);
+    }).catch(() => {});
+  }
+
+  function startCountdown() {
+    generateBtn.disabled = true;
+
+    if (countdownInterval) clearInterval(countdownInterval);
+    remainingSeconds = 60;
+    updateTimerDisplay();
+
+    countdownInterval = setInterval(() => {
+      remainingSeconds--;
+      updateTimerDisplay();
+
+      if (remainingSeconds <= 0) {
+        clearInterval(countdownInterval);
+        timerEl.textContent = "00:00";
+        otpBox.textContent = "Session ended";
+        otpBox.classList.remove("has-otp");
+        generateBtn.disabled = false;
+        setStatus("Session ended – Ready for next", "success");
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    const m = String(Math.floor(remainingSeconds / 60)).padStart(2,'0');
+    const s = String(remainingSeconds % 60).padStart(2,'0');
+    timerEl.textContent = `${m}:${s}`;
+  }
+
+  function addToHistory(email) {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.innerHTML = `<span>${email}</span><small>${new Date().toLocaleTimeString()}</small>`;
+    historyList.prepend(div);
+  }
+
+  async function generateEmail() {
+    generateBtn.textContent = "Creating...";
+    setStatus("Generating new email...", "loading");
+
+    try {
+      const domRes = await fetch("https://api.mail.tm/domains");
+      if (!domRes.ok) throw new Error("Domains failed");
+      const domData = await domRes.json();
+      const domains = domData["hydra:member"] || [];
+      if (!domains.length) throw new Error("No domains");
+
+      const domain = domains[0].domain;
+
+      const first = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const last  = surnames[Math.floor(Math.random() * surnames.length)];
+      const digits = String(Math.floor(10000 + Math.random() * 90000));
+      currentEmail = `${first.toLowerCase()}${last.toLowerCase()}${digits}@${domain}`;
+
+      const accRes = await fetch("https://api.mail.tm/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: currentEmail, password: FIXED_PASS })
+      });
+
+      if (!accRes.ok) throw new Error("Creation failed");
+
+      const tokenRes = await fetch("https://api.mail.tm/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: currentEmail, password: FIXED_PASS })
+      });
+
+      if (!tokenRes.ok) throw new Error("Token failed");
+      const tokenData = await tokenRes.json();
+      token = tokenData.token;
+
+      // Save to Firebase
+      const emailKey = currentEmail.replace(/[@.]/g, '_');
+      await db.ref(`generated_emails/${emailKey}`).set({
+        email: currentEmail,
+        createdAt: new Date().toISOString()
+      });
+
+      // Show current (horizontal email row)
+      currentEmailText.textContent = currentEmail;
+      currentBox.style.display = "block";
+      otpBox.textContent = "Waiting for OTP...";
+      otpBox.classList.remove("has-otp");
+      setStatus("New email active – OTP checking...", "success");
+
+      addToHistory(currentEmail);
+
+      startCountdown();
+
+    } catch (err) {
+      setStatus("Error: " + (err.message || "Try again"), "error");
+    } finally {
+      generateBtn.textContent = "Generate New Email";
+    }
+  }
+
+  async function checkInbox() {
+    if (!token) return;
+
+    try {
+      const res = await fetch("https://api.mail.tm/messages?page=1&limit=5", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const msgs = data["hydra:member"] || [];
+
+      if (msgs.length === 0) {
+        otpBox.textContent = "Waiting for OTP...";
+        return;
+      }
+
+      const latest = msgs[0];
+      const text = (latest.intro || "") + " " + (latest.text || "");
+
+      const otpMatch = text.match(/\b\d{6}\b/);
+      if (otpMatch) {
+        otpBox.textContent = otpMatch[0];
+        otpBox.classList.add("has-otp");
+        setStatus("OTP Received! → " + otpMatch[0], "success");
+      } else {
+        otpBox.textContent = "No 6-digit OTP yet";
+      }
+    } catch {}
+  }
+
+  generateBtn.onclick = generateEmail;
+
+  setInterval(() => {
+    if (token && remainingSeconds > 0) {
+      checkInbox();
+    }
+  }, 5000);
+</script>
+</body>
+</html>
