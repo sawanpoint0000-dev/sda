@@ -4,16 +4,280 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Temp OTP Mail – 2 Min Secure</title>
-  
-  <!-- Firebase SDKs -->
+
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-  
-  <!-- Google Fonts -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-  
-  <!-- Your CSS file -->
-  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg-start: #0d1117;
+      --bg-end:   #0a0e17;
+      --card:     rgba(17, 21, 31, 0.78);
+      --glass:    rgba(30, 41, 59, 0.32);
+      --text:     #e2e8f0;
+      --accent:   #60a5fa;
+      --accent-dark: #3b82f6;
+      --green:    #22c55e;
+      --gray:     #94a3b8;
+      --border:   rgba(148, 163, 184, 0.18);
+      --shadow-sm: 0 4px 30px rgba(0,0,0,0.32);
+      --shadow-lg: 0 16px 70px rgba(0,0,0,0.55);
+      --radius-lg: 20px;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--card);
+      backdrop-filter: blur(16px) saturate(180%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 2rem 1.8rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    h1 {
+      text-align: center;
+      background: linear-gradient(90deg, #a5b4fc, #60a5fa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-size: clamp(1.9rem, 6vw, 2.6rem);
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+
+    button {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      color: white;
+      border: none;
+      padding: 1rem;
+      border-radius: 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin: 1rem 0;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 32px rgba(34,197,94,0.3);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 16px 48px rgba(34,197,94,0.45);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      background: linear-gradient(90deg, #4b5563, #6b7280);
+    }
+
+    /* ─── Processing Overlay ─── */
+    #processingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,14,23,0.94);
+      backdrop-filter: blur(20px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #processingOverlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .progress-container {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      margin-bottom: 1.8rem;
+    }
+
+    .progress-ring { transform: rotate(-90deg); }
+
+    .progress-bg {
+      fill: none;
+      stroke: rgba(30,41,59,0.6);
+      stroke-width: 10;
+    }
+
+    .progress-bar {
+      fill: none;
+      stroke: url(#gradient);
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 500;
+      stroke-dashoffset: 500;
+      transition: stroke-dashoffset 0.4s ease;
+    }
+
+    .progress-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #60a5fa, #a5b4fc);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .processing-text {
+      font-size: 1.35rem;
+      color: var(--gray);
+      text-align: center;
+      max-width: 340px;
+    }
+
+    /* ─── Fixed horizontal email display ─── */
+    .current-email {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 1.4rem;
+      border: 1px solid var(--border);
+      margin: 1.5rem 0;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .email-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(30,41,59,0.5);
+      padding: 1rem 1.2rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    #currentEmailText {
+      flex: 1;
+      font-size: 1.05rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .copy-btn {
+      background: var(--accent);
+      padding: 0.7rem 1.4rem;
+      border-radius: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent-dark);
+      transform: scale(1.06);
+    }
+
+    .timer {
+      text-align: center;
+      font-size: clamp(2.2rem, 8vw, 3.4rem);
+      font-weight: 800;
+      color: var(--accent);
+      margin: 1.2rem 0;
+      text-shadow: 0 0 20px rgba(96,165,250,0.4);
+    }
+
+    .otp-box {
+      background: rgba(30,41,59,0.6);
+      padding: 1.4rem;
+      border-radius: 16px;
+      text-align: center;
+      font-size: clamp(2.4rem, 9vw, 3.8rem);
+      font-weight: 900;
+      letter-spacing: 8px;
+      border: 2px dashed var(--accent);
+      min-height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.5s ease;
+    }
+
+    .otp-box.has-otp {
+      border: 2px solid var(--green);
+      background: rgba(34,197,94,0.15);
+      color: #a7f3d0;
+      box-shadow: 0 0 40px rgba(34,197,94,0.35);
+    }
+
+    #status {
+      text-align: center;
+      margin: 1rem 0;
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+
+    .history-title {
+      margin: 2.5rem 0 1rem;
+      font-size: 1.3rem;
+      color: var(--gray);
+      text-align: center;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 0.8rem;
+      background: rgba(15,23,42,0.4);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .history-item {
+      background: rgba(30,41,59,0.45);
+      padding: 1rem 1.3rem;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid var(--gray);
+      opacity: 0;
+      transform: translateX(-40px);
+      transition: all 0.8s cubic-bezier(0.23,1,0.32,1);
+    }
+
+    .history-item.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .note {
+      text-align: center;
+      color: var(--gray);
+      font-size: 0.95rem;
+      margin-top: 2rem;
+    }
+  </style>
 </head>
 <body>
 
@@ -36,9 +300,9 @@
 
 <div class="container">
   <h1>Temp OTP Mail (2 Min)</h1>
-  
+
   <button id="generateBtn">Generate New Email</button>
-  
+
   <div class="current-email" id="currentBox" style="display:none;">
     <div class="email-row">
       <span id="currentEmailText"></span>
@@ -47,18 +311,235 @@
     <div class="timer" id="timer">02:00</div>
     <div class="otp-box" id="otpBox">Waiting for OTP...</div>
   </div>
-  
+
   <div id="status" class="loading">Ready</div>
-  
+
   <div class="history-title">Recent Generated Emails</div>
   <div class="history-list" id="historyList"></div>
-  
+
   <div class="note">
     • Email & inbox auto-delete after 2 minutes<br>
     • Secure one-time access
   </div>
 </div>
 
-<script src="script.js"></script>
+<script>
+// ────────────────────────────────────────────────
+//  Firebase Config & Variables
+// ────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDFG6e6pFT265Hf7s_3s-hEUD8sN0IDoY0",
+  authDomain: "real-ede33.firebaseapp.com",
+  databaseURL: "https://real-ede33-default-rtdb.firebaseio.com",
+  projectId: "real-ede33",
+  storageBucket: "real-ede33.firebasestorage.app",
+  messagingSenderId: "683680941443",
+  appId: "1:683680941443:web:73bc1c5fcf705330ac22b6",
+  measurementId: "G-G37VVQJSG3"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const FIXED_PASS = "India@123";
+
+const firstNames = ["Rahul","Aman","Vikash","Rohan","Sachin","Arjun","Karan","Nikhil","Yash","Aditya","Sawan","Ravi","Deepak","Ankit","Prakash","Mohit","Sunny","Vivek","Ajay","Pankaj"];
+const surnames  = ["Kumar","Singh","Sharma","Yadav","Gupta","Verma","Mishra","Patel","Jha","Thakur","Sinha","Roy","Das","Mahto","Rai","Prasad","Mehta","Joshi","Tripathi"];
+
+let token = null;
+let currentEmail = "";
+let countdownInterval = null;
+let remainingSeconds = 120;
+
+const generateBtn      = document.getElementById("generateBtn");
+const currentBox       = document.getElementById("currentBox");
+const currentEmailText = document.getElementById("currentEmailText");
+const timerEl          = document.getElementById("timer");
+const otpBox           = document.getElementById("otpBox");
+const statusEl         = document.getElementById("status");
+const historyList      = document.getElementById("historyList");
+const overlay          = document.getElementById("processingOverlay");
+const progressBar      = document.getElementById("progressBar");
+const progressPercent  = document.getElementById("progressPercent");
+const processingMsg    = document.getElementById("processingMsg");
+
+// ────────────────────────────────────────────────
+//  Processing Animation
+// ────────────────────────────────────────────────
+function startProcessingAnimation() {
+  overlay.classList.add("active");
+  progressBar.style.strokeDashoffset = 500;
+  progressPercent.textContent = "0%";
+  processingMsg.textContent = "Creating secure disposable email...";
+
+  return new Promise(resolve => {
+    let percent = 0;
+    const interval = setInterval(() => {
+      percent += Math.random() * 7 + 4;
+      if (percent >= 100) {
+        percent = 100;
+        clearInterval(interval);
+        progressPercent.textContent = "100%";
+        processingMsg.textContent = "Email ready!";
+        setTimeout(resolve, 700);
+      } else {
+        progressPercent.textContent = Math.floor(percent) + "%";
+        progressBar.style.strokeDashoffset = 500 - (500 * percent / 100);
+      }
+    }, 90);
+  });
+}
+
+// ────────────────────────────────────────────────
+//  Generate Email (main function)
+// ────────────────────────────────────────────────
+async function generateEmail() {
+  generateBtn.disabled = true;
+  generateBtn.textContent = "Creating...";
+  setStatus("Initializing secure session...", "loading");
+
+  await startProcessingAnimation();
+
+  try {
+    const domRes = await fetch("https://api.mail.tm/domains");
+    if (!domRes.ok) throw new Error("Cannot fetch domains");
+    const domData = await domRes.json();
+    const domain = domData["hydra:member"]?.[0]?.domain;
+    if (!domain) throw new Error("No domain available");
+
+    currentEmail = generateRandomUsername() + "@" + domain;
+
+    const accRes = await fetch("https://api.mail.tm/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: currentEmail, password: FIXED_PASS })
+    });
+    if (!accRes.ok) throw new Error("Account creation failed");
+
+    const tokenRes = await fetch("https://api.mail.tm/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: currentEmail, password: FIXED_PASS })
+    });
+    if (!tokenRes.ok) throw new Error("Authentication failed");
+    const tokenData = await tokenRes.json();
+    token = tokenData.token;
+
+    const emailKey = currentEmail.replace(/[@.]/g, '_');
+    await db.ref(`generated_emails/${emailKey}`).set({
+      email: currentEmail,
+      createdAt: new Date().toISOString()
+    });
+
+    currentEmailText.textContent = currentEmail;
+    currentBox.style.display = "block";
+    otpBox.textContent = "Waiting for OTP...";
+    otpBox.classList.remove("has-otp");
+    setStatus("Email active • OTP checking...", "success");
+    addToHistory(currentEmail);
+    startCountdown();
+
+  } catch (err) {
+    setStatus("Error: " + (err.message || "Something went wrong"), "error");
+  } finally {
+    generateBtn.textContent = "Generate New Email";
+    generateBtn.disabled = false;
+    setTimeout(() => overlay.classList.remove("active"), 800);
+  }
+}
+
+// ────────────────────────────────────────────────
+//  Other functions
+// ────────────────────────────────────────────────
+function copyCurrentEmail() {
+  navigator.clipboard.writeText(currentEmail).then(() => {
+    generateBtn.textContent = "Copied ✓";
+    setTimeout(() => generateBtn.textContent = "Generate New Email", 1400);
+  }).catch(() => {});
+}
+
+function startCountdown() {
+  generateBtn.disabled = true;
+  if (countdownInterval) clearInterval(countdownInterval);
+  remainingSeconds = 120;
+  updateTimerDisplay();
+  countdownInterval = setInterval(() => {
+    remainingSeconds--;
+    updateTimerDisplay();
+    if (remainingSeconds <= 0) {
+      clearInterval(countdownInterval);
+      timerEl.textContent = "00:00";
+      otpBox.textContent = "Session ended";
+      otpBox.classList.remove("has-otp");
+      generateBtn.disabled = false;
+      setStatus("Session ended – ready for new", "success");
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = String(Math.floor(remainingSeconds / 60)).padStart(2,'0');
+  const s = String(remainingSeconds % 60).padStart(2,'0');
+  timerEl.textContent = `${m}:${s}`;
+}
+
+function addToHistory(email) {
+  const div = document.createElement("div");
+  div.className = "history-item";
+  div.innerHTML = `<span>${email}</span><small>${new Date().toLocaleTimeString()}</small>`;
+  historyList.prepend(div);
+  setTimeout(() => div.classList.add("visible"), 20);
+}
+
+function generateRandomUsername() {
+  const first = firstNames[Math.floor(Math.random() * firstNames.length)].toLowerCase();
+  const last  = surnames[Math.floor(Math.random() * surnames.length)].toLowerCase();
+  const num   = Math.floor(10000 + Math.random() * 90000);
+  const styles = [
+    first + last + num,
+    first + num + last,
+    last + first + num,
+    first + last + String(num).slice(0,3) + 'x',
+  ];
+  return styles[Math.floor(Math.random() * styles.length)];
+}
+
+async function checkInbox() {
+  if (!token || remainingSeconds <= 0) return;
+  try {
+    const res = await fetch("https://api.mail.tm/messages?page=1&limit=4", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const msg = data["hydra:member"]?.[0];
+    if (!msg) return;
+
+    const text = (msg.intro || "") + " " + (msg.text || "");
+    const match = text.match(/\b\d{6}\b/);
+    if (match) {
+      otpBox.textContent = match[0];
+      otpBox.classList.add("has-otp");
+      setStatus("OTP received → " + match[0], "success");
+    }
+  } catch {}
+}
+
+generateBtn.onclick = generateEmail;
+
+setInterval(checkInbox, 4800);
+
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    [...document.querySelectorAll('.history-item')].forEach((el,i) => {
+      setTimeout(() => el.classList.add('visible'), i * 120);
+    });
+  }, 600);
+});
+
+function setStatus(msg, type = "loading") {
+  statusEl.textContent = msg;
+  statusEl.className = type;
+}
+</script>
 </body>
 </html>
