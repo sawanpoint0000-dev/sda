@@ -253,14 +253,10 @@
 </div>
 
 <script>
-/* =========================
-   IP PERMISSION SYSTEM
-========================= */
 
 const allowedPrefixes = [
 "49.32",
-"106.76",
-"",
+"42.106.146.0",
 ];
 
 async function checkIPPermission(){
@@ -308,10 +304,6 @@ async function checkIPPermission(){
 
 checkIPPermission();
 
-/* =========================
-   FIREBASE CONFIG
-========================= */
-
 const firebaseConfig = {
   apiKey: "AIzaSyDFG6e6pFT265Hf7s_3s-hEUD8sN0IDoY0",
   authDomain: "real-ede33.firebaseapp.com",
@@ -326,10 +318,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const analytics = firebase.analytics();
-
-/* =========================
-   BROWSER ID SYSTEM
-========================= */
 
 function getBrowserId(){
 
@@ -353,9 +341,7 @@ function getBrowserId(){
 
 const browserId = getBrowserId();
 
-/* =========================
-   VARIABLES
-========================= */
+
 
 const firstNames = [
 "Rahul","Aman","Vikash","Rohan","Sachin",
@@ -375,9 +361,7 @@ let token = null;
 let currentEmail = "";
 let currentPassword = "";
 
-/* =========================
-   DOM
-========================= */
+
 
 const generateBtn = document.getElementById("generateBtn");
 const currentBox  = document.getElementById("currentBox");
@@ -385,9 +369,7 @@ const otpBox      = document.getElementById("otpBox");
 const statusEl    = document.getElementById("status");
 const historyList = document.getElementById("historyList");
 
-/* =========================
-   PASSWORD GENERATOR
-========================= */
+
 
 function generateStrongPassword(){
 
@@ -408,10 +390,6 @@ function generateStrongPassword(){
 
 }
 
-/* =========================
-   USERNAME GENERATOR
-========================= */
-
 function generateRandomUsername(){
 
   const first =
@@ -425,10 +403,6 @@ function generateRandomUsername(){
   return first + last + num;
 
 }
-
-/* =========================
-   GENERATE EMAIL
-========================= */
 
 async function generateEmail(){
 
@@ -496,10 +470,6 @@ async function generateEmail(){
 
 }
 
-/* =========================
-   CHECK OTP
-========================= */
-
 async function checkInbox(){
 
   if(!token) return;
@@ -538,10 +508,6 @@ async function checkInbox(){
 
 }
 
-/* =========================
-   HISTORY SAVE
-========================= */
-
 function saveHistory(){
 
   const emailKey =
@@ -562,17 +528,9 @@ function saveHistory(){
 
 }
 
-/* =========================
-   EVENTS
-========================= */
-
 generateBtn.onclick = generateEmail;
 
 setInterval(checkInbox,5000);
-
-/* =========================
-   AUTO REFRESH
-========================= */
 
 setTimeout(()=>{
 
