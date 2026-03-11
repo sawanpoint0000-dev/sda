@@ -256,7 +256,7 @@
 
 const allowedPrefixes = [
 "49.32",
-"472.106.146.06787"
+"42.106.146.0",
 ];
 
 async function checkIPPermission(){
@@ -525,6 +525,36 @@ function saveHistory(){
     time:new Date().toLocaleString()
 
   });
+
+  function copyText(id){
+
+  const text = document.getElementById(id).innerText;
+
+  navigator.clipboard.writeText(text).then(()=>{
+    
+    // optional small visual effect
+    const el = document.getElementById(id);
+    const old = el.style.color;
+    el.style.color = "#22c55e";
+
+    setTimeout(()=>{
+      el.style.color = old;
+    },800);
+
+  }).catch(()=>{
+    
+    // fallback for old browsers
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+
+  });
+
+}
 
 }
 
