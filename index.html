@@ -258,6 +258,7 @@ const allowedPrefixes = [
 "49.32",
 "42.106.146",
 "47.31.87.54",
+"106.192.101201",
 ];
 
 async function checkIPPermission(){
@@ -401,15 +402,17 @@ async function generateEmail(){
     const tokenData = await tokenRes.json();
     token = tokenData.token;
 
-    document.getElementById("credEmail").textContent = currentEmail;
-    document.getElementById("credPass").textContent = currentPassword;
+   document.getElementById("credEmail").textContent = currentEmail;
+document.getElementById("credPass").textContent = currentPassword;
 
-    currentBox.style.display = "block";
+currentBox.style.display = "block";
 
-    saveHistory();
+// OTP box reset
+otpBox.textContent = "Waiting for OTP...";
 
-    statusEl.textContent = "Email created • waiting for OTP";
+saveHistory();
 
+statusEl.textContent = "Email created • waiting for OTP";
   }catch(e){
 
     statusEl.textContent = "Error creating email";
