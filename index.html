@@ -254,44 +254,48 @@
 
 <script>
 
-const allowedPrefixes = [
-"49.32",
-"42.106.146",
-"47.31.87.54",
-"106.192.101201",
-  "42.104.250.18",
+const SECRET_KEYS = [
+"K1A9X2",
+"B7Q4P8",
+"Z6M3L1",
+"R2W9T5",
+"F8C6H4",
+"Y3D7U0"
 ];
 
-async function checkIPPermission(){
-  try{
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    const userIP = data.ip;
+function checkLogin(){
 
-    let allowed = false;
+  const savedKey = localStorage.getItem("login_key");
 
-    allowedPrefixes.forEach(prefix=>{
-      if(userIP.startsWith(prefix)){
-        allowed = true;
-      }
-    });
-
-    if(!allowed){
-      document.body.innerHTML = `
-      <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#0d1117;color:white;font-family:Arial;text-align:center;">
-      <div>
-      <h1>ACCESS DENIED</h1>
-      <p>Your IP: ${userIP}</p>
-      </div>
-      </div>`;
-    }
-
-  }catch(err){
-    console.log(err);
+  if(savedKey && SECRET_KEYS.includes(savedKey)){
+    return true;
   }
+
+  const userKey = prompt("Enter Access Key");
+
+  if(SECRET_KEYS.includes(userKey)){
+
+    localStorage.setItem("login_key", userKey);
+    return true;
+
+  }else{
+
+    document.body.innerHTML = `
+    <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#0d1117;color:white;font-family:Arial;text-align:center;">
+    <div>
+    <h1>ACCESS DENIED</h1>
+    <p>Invalid Key</p>
+    </div>
+    </div>`;
+
+    return false;
+  }
+
 }
 
-checkIPPermission();
+if(!checkLogin()){
+  throw new Error("Login Failed");
+}
 
 const firebaseConfig = {
   apiKey: "AIzaSyDFG6e6pFT265Hf7s_3s-hEUD8sN0IDoY0",
@@ -323,6 +327,11 @@ function getBrowserId(){
 
 const browserId = getBrowserId();
 
+
+// ===============================
+// NAME LIST
+// ===============================
+
 const firstNames = [
 "Rahul","Aman","Vikash","Rohan","Sachin",
 "Arjun","Karan","Nikhil","Yash","Aditya",
@@ -337,14 +346,17 @@ const surnames = [
 "Prasad","Mehta","Joshi","Tripathi"
 ];
 
+
 let token = null;
 let currentEmail = "";
 let currentPassword = "";
+
 
 const generateBtn = document.getElementById("generateBtn");
 const currentBox  = document.getElementById("currentBox");
 const otpBox      = document.getElementById("otpBox");
 const statusEl    = document.getElementById("status");
+
 
 function generateStrongPassword(){
 
@@ -403,17 +415,17 @@ async function generateEmail(){
     const tokenData = await tokenRes.json();
     token = tokenData.token;
 
-   document.getElementById("credEmail").textContent = currentEmail;
-document.getElementById("credPass").textContent = currentPassword;
+    document.getElementById("credEmail").textContent = currentEmail;
+    document.getElementById("credPass").textContent = currentPassword;
 
-currentBox.style.display = "block";
+    currentBox.style.display = "block";
 
-// OTP box reset
-otpBox.textContent = "Waiting for OTP...";
+    otpBox.textContent = "Waiting for OTP...";
 
-saveHistory();
+    saveHistory();
 
-statusEl.textContent = "Email created • waiting for OTP";
+    statusEl.textContent = "Email created • waiting for OTP";
+
   }catch(e){
 
     statusEl.textContent = "Error creating email";
@@ -445,24 +457,26 @@ async function checkInbox(){
     const match = text.match(/\d{6}/);
 
     if(match){
+
       otpBox.textContent = match[0];
       statusEl.textContent = "OTP Received";
+
     }
 
   }catch(e){}
 
 }
 
+
+
 function saveHistory(){
 
   const emailKey = currentEmail.replace(/[@.]/g,"_");
 
   db.ref("browser_histories/" + browserId + "/" + emailKey).set({
-
     email:currentEmail,
     password:currentPassword,
     time:new Date().toLocaleString()
-
   });
 
 }
@@ -489,6 +503,7 @@ function copyText(id){
 generateBtn.onclick = generateEmail;
 
 setInterval(checkInbox,5000);
+
 
 setTimeout(()=>{
   location.reload();
