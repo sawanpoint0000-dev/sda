@@ -1,16 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Temp OTP Mail – Per Browser History</title>
-
-<link rel="stylesheet" href="style.css">
-
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Temp OTP Mail – Per Browser History</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    :root {
+      --bg-start: #0d1117;
+      --bg-end: #0a0e17;
+      --card: rgba(17, 21, 31, 0.78);
+      --glass: rgba(30, 41, 59, 0.32);
+      --text: #e2e8f0;
+      --accent: #60a5fa;
+      --accent-dark: #3b82f6;
+      --green: #22c55e;
+      --gray: #94a3b8;
+      --border: rgba(148, 163, 184, 0.18);
+      --shadow-sm: 0 4px 30px rgba(0,0,0,0.32);
+      --shadow-lg: 0 16px 70px rgba(0,0,0,0.55);
+      --radius-lg: 20px;
+      --highlight: #60a5fa;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--card);
+      backdrop-filter: blur(16px) saturate(180%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 2rem 1.8rem;
+      box-shadow: var(--shadow-lg);
+    }
+    h1 {
+      text-align: center;
+      background: linear-gradient(90deg, #a5b4fc, #60a5fa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-size: clamp(1.9rem, 6vw, 2.6rem);
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+    button {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-left: 0.8rem;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(34,197,94,0.4);
+    }
+    #processingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,14,23,0.94);
+      backdrop-filter: blur(20px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    #processingOverlay.active {
+      display: flex;
+      opacity: 1;
+    }
+    .progress-container {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      margin-bottom: 1.8rem;
+    }
+    .progress-ring { transform: rotate(-90deg); }
+    .progress-bg {
+      fill: none;
+      stroke: rgba(30,41,59,0.6);
+      stroke-width: 10;
+    }
+    .progress-bar {
+      fill: none;
+      stroke: url(#gradient);
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 500;
+      stroke-dashoffset: 500;
+      transition: stroke-dashoffset 0.4s ease;
+    }
+   .progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.2rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #60a5fa, #a5b4fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+    .processing-text {
+      font-size: 1.35rem;
+      color: var(--gray);
+      text-align: center;
+      max-width: 340px;
+    }
+    .current-email {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 1.6rem;
+      border: 1px solid var(--border);
+      margin: 1.5rem 0;
+      box-shadow: var(--shadow-sm);
+    }
+    #credentialsBox {
+      background: rgba(30,41,59,0.7);
+      border-radius: 12px;
+      padding: 1.2rem;
+      border: 1px solid rgba(96,165,250,0.3);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    #credentialsBox p {
+      margin: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    #credentialsBox .label {
+      color: var(--gray);
+      min-width: 90px;
+    }
+    #credentialsBox .value {
+      color: var(--highlight);
+      font-weight: 600;
+      word-break: break-all;
+    }
+    #status {
+      text-align: center;
+      margin: 1.2rem 0;
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+    .history-title {
+      margin: 2.5rem 0 1rem;
+      font-size: 1.3rem;
+      color: var(--gray);
+      text-align: center;
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 0.8rem;
+      background: rgba(15,23,42,0.4);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+    .history-item {
+      background: rgba(30,41,59,0.45);
+      padding: 1rem 1.3rem;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid var(--gray);
+    }
+    .note {
+      text-align: center;
+      color: var(--gray);
+      font-size: 0.95rem;
+      margin-top: 2rem;
+    }
+  </style>
 </head>
 <body>
 
@@ -28,52 +215,370 @@
     </svg>
     <div class="progress-text" id="progressPercent">0%</div>
   </div>
-  <div class="processing-text">Creating secure disposable email...</div>
+  <div class="processing-text" id="processingMsg">Creating secure disposable email...</div>
 </div>
 
 <div class="container">
+  <h1>Temp OTP Mail</h1>
+  <button id="generateBtn">Generate New Email</button>
 
-<h1>Temp OTP Mail</h1>
+  <div class="current-email" id="currentBox" style="display:none;">
+    <div id="credentialsBox">
+      <p>
+        <span class="label">Email:</span>
+        <span id="credEmail" class="value"></span>
+        <button onclick="copyText('credEmail')">Copy Email</button>
+      </p>
+      <p>
+        <span class="label">Password:</span>
+        <span id="credPass" class="value"></span>
+        <button onclick="copyText('credPass')">Copy Password</button>
+      </p>
+    </div>
 
-<button id="generateBtn">Generate New Email</button>
+    <div class="otp-box" id="otpBox" style="margin-top:1.5rem; background: rgba(30,41,59,0.6); padding:1.4rem; border-radius:16px; text-align:center; font-size:2.8rem; font-weight:900; letter-spacing:8px; border:2px dashed var(--accent); min-height:100px; display:flex; align-items:center; justify-content:center;">
+      Waiting for OTP...
+    </div>
+  </div>
 
-<div class="current-email" id="currentBox" style="display:none;">
+  <div id="status" style="text-align:center; margin:1.2rem 0; font-size:1.05rem; font-weight:500;">Ready</div>
+  <div class="history-title">Generated Email</div>
+  <div class="history-list" id="historyList"></div>
 
-<div id="credentialsBox">
-
-<p>
-<span class="label">Email:</span>
-<span id="credEmail" class="value"></span>
-<button onclick="copyText('credEmail')">Copy Email</button>
-</p>
-
-<p>
-<span class="label">Password:</span>
-<span id="credPass" class="value"></span>
-<button onclick="copyText('credPass')">Copy Password</button>
-</p>
-
+   <div class="note">
+    • <br>
+    • <br>
+    • Page auto refreshes every 15 minutes
+  </div>
 </div>
 
-<div class="otp-box" id="otpBox">
-Waiting for OTP...
-</div>
+<script>
+/* =========================
+   IP PERMISSION SYSTEM
+========================= */
 
-</div>
+const allowedPrefixes = [
+"49.32",
+"106.76",
+"42.106.146.0",
+];
 
-<div id="status">Ready</div>
+async function checkIPPermission(){
 
-<div class="history-title">Generated Email</div>
+  try{
 
-<div class="history-list" id="historyList"></div>
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    const userIP = data.ip;
 
-<div class="note">
-• Page auto refreshes every 15 minutes
-</div>
+    let allowed = false;
 
-</div>
+    allowedPrefixes.forEach(prefix=>{
+      if(userIP.startsWith(prefix)){
+        allowed = true;
+      }
+    });
 
-<script src="script.js"></script>
+    if(!allowed){
 
+      document.body.innerHTML = `
+      <div style="
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#0d1117;
+      color:white;
+      font-family:Arial;
+      text-align:center;">
+      <div>
+      <h1>ACCESS DENIED</h1>
+      <p>Your IP: ${userIP}</p>
+      </div>
+      </div>
+      `;
+
+    }
+
+  }catch(err){
+    console.log(err);
+  }
+
+}
+
+checkIPPermission();
+
+/* =========================
+   FIREBASE CONFIG
+========================= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDFG6e6pFT265Hf7s_3s-hEUD8sN0IDoY0",
+  authDomain: "real-ede33.firebaseapp.com",
+  databaseURL: "https://real-ede33-default-rtdb.firebaseio.com",
+  projectId: "real-ede33",
+  storageBucket: "real-ede33.firebasestorage.app",
+  messagingSenderId: "683680941443",
+  appId: "1:683680941443:web:73bc1c5fcf705330ac22b6",
+  measurementId: "G-G37VVQJSG3"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const analytics = firebase.analytics();
+
+/* =========================
+   BROWSER ID SYSTEM
+========================= */
+
+function getBrowserId(){
+
+  let browserId = localStorage.getItem("tempMailBrowserId");
+
+  if(!browserId){
+
+    browserId =
+      "bid_" +
+      Math.random().toString(36).substring(2,9) +
+      "_" +
+      Date.now();
+
+    localStorage.setItem("tempMailBrowserId", browserId);
+
+  }
+
+  return browserId;
+
+}
+
+const browserId = getBrowserId();
+
+/* =========================
+   VARIABLES
+========================= */
+
+const firstNames = [
+"Rahul","Aman","Vikash","Rohan","Sachin",
+"Arjun","Karan","Nikhil","Yash","Aditya",
+"Sawan","Ravi","Deepak","Ankit","Prakash",
+"Mohit","Sunny","Vivek","Ajay","Pankaj"
+];
+
+const surnames = [
+"Kumar","Singh","Sharma","Yadav","Gupta",
+"Verma","Mishra","Patel","Jha","Thakur",
+"Sinha","Roy","Das","Mahto","Rai",
+"Prasad","Mehta","Joshi","Tripathi"
+];
+
+let token = null;
+let currentEmail = "";
+let currentPassword = "";
+
+/* =========================
+   DOM
+========================= */
+
+const generateBtn = document.getElementById("generateBtn");
+const currentBox  = document.getElementById("currentBox");
+const otpBox      = document.getElementById("otpBox");
+const statusEl    = document.getElementById("status");
+const historyList = document.getElementById("historyList");
+
+/* =========================
+   PASSWORD GENERATOR
+========================= */
+
+function generateStrongPassword(){
+
+  const chars =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  let pass = "";
+
+  for(let i=0;i<10;i++){
+
+    pass += chars.charAt(
+      Math.floor(Math.random()*chars.length)
+    );
+
+  }
+
+  return pass;
+
+}
+
+/* =========================
+   USERNAME GENERATOR
+========================= */
+
+function generateRandomUsername(){
+
+  const first =
+    firstNames[Math.floor(Math.random()*firstNames.length)].toLowerCase();
+
+  const last =
+    surnames[Math.floor(Math.random()*surnames.length)].toLowerCase();
+
+  const num = Math.floor(10000 + Math.random()*90000);
+
+  return first + last + num;
+
+}
+
+/* =========================
+   GENERATE EMAIL
+========================= */
+
+async function generateEmail(){
+
+  try{
+
+    generateBtn.disabled = true;
+
+    const domRes = await fetch("https://api.mail.tm/domains");
+    const domData = await domRes.json();
+
+    const domain = domData["hydra:member"][0].domain;
+
+    currentEmail =
+      generateRandomUsername() + "@" + domain;
+
+    currentPassword =
+      generateStrongPassword();
+
+    await fetch("https://api.mail.tm/accounts",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        address:currentEmail,
+        password:currentPassword
+      })
+    });
+
+    const tokenRes = await fetch("https://api.mail.tm/token",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        address:currentEmail,
+        password:currentPassword
+      })
+    });
+
+    const tokenData = await tokenRes.json();
+
+    token = tokenData.token;
+
+    document.getElementById("credEmail").textContent =
+      currentEmail;
+
+    document.getElementById("credPass").textContent =
+      currentPassword;
+
+    currentBox.style.display = "block";
+
+    saveHistory();
+
+    statusEl.textContent =
+      "Email created • waiting for OTP";
+
+  }catch(e){
+
+    statusEl.textContent = "Error";
+
+  }
+
+  generateBtn.disabled = false;
+
+}
+
+/* =========================
+   CHECK OTP
+========================= */
+
+async function checkInbox(){
+
+  if(!token) return;
+
+  try{
+
+    const res = await fetch(
+      "https://api.mail.tm/messages",
+      {
+        headers:{
+          Authorization:`Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await res.json();
+
+    const msg = data["hydra:member"][0];
+
+    if(!msg) return;
+
+    const text = msg.intro + " " + msg.text;
+
+    const match = text.match(/\d{6}/);
+
+    if(match){
+
+      otpBox.textContent = match[0];
+
+      statusEl.textContent =
+        "OTP Received";
+
+    }
+
+  }catch(e){}
+
+}
+
+/* =========================
+   HISTORY SAVE
+========================= */
+
+function saveHistory(){
+
+  const emailKey =
+    currentEmail.replace(/[@.]/g,"_");
+
+  db.ref(
+    "browser_histories/" +
+    browserId +
+    "/" +
+    emailKey
+  ).set({
+
+    email:currentEmail,
+    password:currentPassword,
+    time:new Date().toLocaleString()
+
+  });
+
+}
+
+/* =========================
+   EVENTS
+========================= */
+
+generateBtn.onclick = generateEmail;
+
+setInterval(checkInbox,5000);
+
+/* =========================
+   AUTO REFRESH
+========================= */
+
+setTimeout(()=>{
+
+  location.reload();
+
+},15*60*1000);
+</script>
 </body>
-</html>
+</html> 
