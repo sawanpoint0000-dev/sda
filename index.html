@@ -387,7 +387,7 @@ async function generateEmail(){
 
     generateBtn.disabled = true;
 
-    const domRes = await fetch("https://api.mail.tm/domains");
+    const domRes = await fetch("https://api.mail.gw/domains");
     const domData = await domRes.json();
 
     const domain = domData["hydra:member"][0].domain;
@@ -395,7 +395,7 @@ async function generateEmail(){
     currentEmail = generateRandomUsername() + "@" + domain;
     currentPassword = generateStrongPassword();
 
-    await fetch("https://api.mail.tm/accounts",{
+    await fetch("https://api.mail.gw/accounts",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
@@ -404,7 +404,7 @@ async function generateEmail(){
       })
     });
 
-    const tokenRes = await fetch("https://api.mail.tm/token",{
+    const tokenRes = await fetch("https://api.mail.gw/token",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
@@ -443,7 +443,7 @@ async function checkInbox(){
   try{
 
     const res = await fetch(
-      "https://api.mail.tm/messages",
+      "https://api.mail.gw/messages",
       { headers:{ Authorization:`Bearer ${token}` } }
     );
 
